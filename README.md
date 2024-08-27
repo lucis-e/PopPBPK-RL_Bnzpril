@@ -36,8 +36,39 @@ Run the Python notebook to classify the virtual population into the defined stra
 
 ### 2. RL agent
 
-:three: 
+:three: **Extract the PopPBPK experiences** 
 
+Run the `ExperienceGenerator.py` script to extract experiences of the agent's interaction with the environment (the PopPBPK simulated 
+patient's PK profiles) from data. The module `RewardFunction.py` is required for this script to run and admits any other reward function candidates.
+
+```
+python ExperienceGenerator.py
+```
+
+:four: **Train the RL model**
+
+Train the RL-agent with Q-Learning algorithm by running the `RL-T.py` script and generate a Q-table to be consulted in order to predict the optimal dosing regimens.
+
+```
+python RL-T.py
+```
+
+>[!NOTE]
+> The Q-Learning algorithm would employ the optimal combination of hyperparameters (learning rate and discount factor) discovered by grid search. To 
+repeat model's hyperparameter tuning the following code should be run:
+
+```
+cd ParameterTuning
+python RL-T_tuning.py
+python RL-P_tuning.py
+```
+
+:five: **Retrieve the RL-learned dosing regimens**
+Run the `RL-P.py` script to retrieve the resulting RL-predicted Benazepril dosing regimens for each of the 40 patient strata.
+
+```
+python RL-P.py
+```
 
 ## Data
 
