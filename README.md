@@ -61,15 +61,16 @@ python RL-T.py
 
 >[!NOTE]
 > The Q-Learning algorithm would employ the optimal combination of hyperparameters (learning rate and discount factor) discovered by grid search. To 
-repeat model's hyperparameter tuning the following code should be run:
+repeat model's **hyperparameter tuning** the following code should be run:
 
-```
-cd ParameterTuning
-python RL-T_tuning.py
-python RL-P_tuning.py
-```
+>```
+>cd ParameterTuning
+>python RL-T_tuning.py
+>python RL-P_tuning.py
+>```
 
 :five: **Retrieve the RL-learned dosing regimens**
+
 Run the `RL-P.py` script to retrieve the resulting RL-predicted Benazepril dosing regimens for each of the 40 patient strata.
 
 ```
