@@ -41,3 +41,5 @@ Run the Python notebook to classify the virtual population into the defined stra
 
 
 ## Data
+
+The data employed in this project is available under formal request to: 
