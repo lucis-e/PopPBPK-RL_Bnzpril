@@ -1,0 +1,186 @@
+---
+title: "RLM"
+output: html_document
+---
+
+REGRESIÓN LINEAL MÚLTIPLE Y SELECCIÓN DE PREDICTORES
+
+Modelización del resultado farmacocinético definido por la variable AUC en tiempo t=7 mediante regresión lineal múltiple construida con la información de las variables independientes antropométricas y fisiológicas. Los datos de este estudio fueron obtenidos por simulación mediante un modelo poblacional PBPK. Análisis de la influencia de las variables predictivas sobre la variable resultado y selección de parámetros de mayor influencia en el resultado farmacocinético, para la estratificación poblacional y la definición de los estados de un modelo de aprendizaje por refuerzo. La selección de predictores se realiza mediante el método Stepwise Backwards y la elección del mejor modelo basando en la métrica AIC. Se estudió la colinealidad de los predictores que construyen el modelo final tras la selección y se elimina 1 predictor de cada pareja de variables colineales, para evitar problemas derivados en la aproximación del modelo.
+
+```{r}
+library(readxl)
+library(tidyr)
+library(dplyr)
+library(reshape)
+library(ggplot2)
+library(data.table)
+library(faraway)
+library(tidyverse)
+library(skimr)
+library(scales)
+library(corrr)
+library(glmnet)
+library(pls)
+```
+
+Carga del conjunto de datos de 10.000 pacientes virtuales
+
+```{r}
+input<-'../Data/A2_DOK_10000patStrat_10mg_V01.xlsx'
+datas<-read_excel(input) #amtropometric variables
+colnames(datas)[2:6]<-c("Edad", "Altura", "Peso", "Género", "IMC")
+datas
+```
+
+1. MODELO COMPLETO CON TODOS LOS PREDICTORES
+
+```{r}
+set.seed(1235)
+
+id_train <- sample(1:nrow(datas), size = 0.7*nrow(datas), replace = FALSE)
+
+reg_vars<-colnames(datas)[c(2:20,23:39, 42:44, 65)]  # Selección de todos los parámetros para la construcción del modelo excepto los volúmebes y flujos sanguíneos del tejido venoso y arterial pues se mantiene constante para todos los pacientes (no hay información)
+
+scaled <-  data.frame(scale(datas[reg_vars], center= TRUE, scale=TRUE)) # Escalado de las variables para el correcto análisis de la influencia de los predictores sobre el resultado farmacocinético al séptimo día
+
+datos_train <- scaled[id_train, ]
+datos_test  <- scaled[-id_train,]
+```
+
+Creación del modelo
+
+````{r}
+modelo <- lm(AUCday7 ~ ., data = datos_train)
+summary(modelo)
+
+````
+El valor R2ajustado obtenido es muy alto (0.9453) lo que indica que el modelo es capaz de predecir con gran exactitud el perfil farmacocinético de las observaciones con las que se ha entrenado. El hecho de que el modelo en conjunto sea significativo (p-value: < 2.2e-16), pero que muy pocos de los predictores lo sean a nivel individual, es indicativo de una posible redundancia entre los predictores (colinealidad).
+
+
+Entrenamiento y evaluación de la capacidad de predicción del modelo en datos no observados.
+
+Se emplea como métrica de evaluación Mean Square Error (MSE).
+
+```{r}
+predicciones_train <- predict(modelo, newdata = datos_train)
+training_mse <- mean((predicciones_train - datos_train$AUCday7)^2) # MSE de entrenamiento
+
+predicciones_test <- predict(modelo, newdata = datos_test)
+test_mse_ols <- mean((predicciones_test - datos_test$AUCday7)^2) # MSE de evaluación
+
+paste("Error de entrenamiento:", training_mse)
+paste("Error de evaluación:", test_mse_ols)
+
+```
+El modelo tiene un MSE muy bajo tanto cuando predice las observaciones con las que se ha entrenado (0.0542) como al predecir nuevas observaciones (0.0577), por lo que no se detecta problema de overfitting. Sin embargo puede que haya existencia de predictores que no aportan información o redundantes (por problemas de colinealidad por ejemplo).
+
+
+2. SELECCIÓN DE PREDICTORES DE MAYOR INFLUENCIA EN EL RESULTADO FARMACOCINÉTICO AL SÉPTIMO DÍA
+
+Para la selección de predictores se estudian las diferentes metodologías. El método Best subset selection queda descartado por el elevado número de predictores (más de 10). Se emplea el método de Stepwise Selection en su versión Backwards. La función step() de paquete stats permite aplicar el proceso de stepwise selection y seleccionar el mejor modelo en base al AIC. El criterio de información de Akaike (AIC) es una medida de la calidad relativa de un modelo estadístico, para un conjunto dado de datos.
+
+Creación y selección del modelo: Stepwise Backward Selection
+
+```{r}
+modelo <- step(
+              object    = lm(formula = AUCday7 ~ ., data = datos_train),
+              direction = "backward",
+              scope     = list(upper = ~., lower = ~1),
+              trace     = FALSE)
+
+summary(modelo)
+```
+El valor R2ajustado obtenido es exactamente igual que el obtenido con todos los parámetros (0.9453) lo que indica que la reducción del número de parámetros no afecta a la capacidad del modelo para aproximar el perfil farmacocinético. Las variables excluidas eran variables redundantes o que no aportaban ninguna informmación al modelo. Aún así, el número de predictores sigue siendo bastante elevado (15 predictores) lo que llevaría a la creación de demasiados grupos de pacientes lo que restaría interpretabilidad al estudio realizado en este proyecto. 
+
+
+Entrenamiento y evaluación de la capacidad de predicción del modelo en datos no observados.
+Se emplea como métrica de evaluación Mean Square Error (MSE).
+
+```{r}
+predicciones_train <- predict(modelo, newdata = datos_train)
+training_mse <- mean((predicciones_train - datos_train$AUCday7)^2)
+
+predicciones_test <- predict(modelo, newdata = datos_test)
+test_mse_step <- mean((predicciones_test - datos_test$AUCday7)^2)
+
+paste("Error (mse) de entrenamiento:", training_mse)
+paste("Error (mse) de test:", test_mse_step)
+```
+Los errores MSE de entrenamiento y evaluación de este modelo no varían significativamente con respecto al modelo con todos los parámetros. Este modelo sigue prediciendo el resultado farmacocinético con alta eficiencia, la selección de parámetros relevantes se ha realizado con éxito.
+
+
+Se estudia la colinealidad entre los predictores seleccionados por el método Stepwise Selection, para eliminar aquellos predictores altamente correlacionados entre sí que puedan contener información redundante o afectar a la capacidad predictiva del modelo
+
+```{r}
+# Matriz de correlación (test de Spearman ya que no se cumple la condición de normalidad)
+
+predictores_seleccionados<-names(modelo$coefficients)[2:18]
+
+df_correlaciones <- scaled[, predictores_seleccionados] %>%
+                    correlate(method = "spearman") %>%
+                    stretch(remove.dups = TRUE)
+
+df_correlaciones %>% mutate(r_abs = abs(r)) %>% arrange(desc(r_abs)) %>% head(5)
+
+library(corrplot)
+
+mer_sel <- scaled[, predictores_seleccionados]
+corrplot(cor(mer_sel,method="spearman"),method="number",number.cex=0.75)
+
+
+```
+Existe una clara correlación entre las variables GFR, SCr y eGFR, existiendo un evento de tricolinealidad. Tiene sentido pues el modelo de simulación de insuficiencia renal simula los valores de las variables GFR y SCr a partir del valor de entrada eGFR, que es el estimado de GFR. 
+
+Las variables altura y peso están altamente correlacionadas con varias de las variables fisiológicas, lo que tiene sentido debido a que el modelo poblacional los simula en función de estos parámetros (valores de entrada del modelo de poblaciones). De igual forma ambas están correlacionadas con el ICM que también se correlaciona parcialmente con las variables fisiológicas.
+
+Se elimina la variable de Altura, debido a su alta correlación con varios de los parámetros. 
+
+La Altura está altamente correlacionada con el volumen del cerebro (0.96), y relativamente con el volumen del intestino (0.58) y el ICM (-0.68). Esta correlación relativa con el ICM se puede deber a una colinealidad adicional del ICM con el Peso (0.68). 
+Además la altura tiene un p-value menor qeu los otros en el modelo
+
+Modelo con las variable seleccionadas sin colinealidad
+
+```{r}
+
+modelo <- lm(AUCday7 ~ ., data = datos_train[c(names(modelo$coefficients)[c(2,5:15,18)], "AUCday7")])
+summary(modelo)
+
+```
+
+R ajustado de este modelo baja pero etá bien: 0.8476 
+p-value < 2.2e-16 o sea que predice bien
+
+```{r}
+predicciones_train <- predict(modelo, newdata = datos_train)
+training_mse <- mean((predicciones_train - datos_train$AUCday7)^2)
+
+predicciones_test <- predict(modelo, newdata = datos_test)
+test_mse_step <- mean((predicciones_test - datos_test$AUCday7)^2)
+
+paste("Error (mse) de entrenamiento:", training_mse)
+paste("Error (mse) de test:", test_mse_step)
+```
+Los errores aumentan pero no hay overfitting, los errores siguen siendo bastante bajos, lo que es asumible en nuestro caso.
+
+
+Para la selección de los parámetros del modelo que definirán los grupos de estratificación se estudian los coefcientes, que estiman la influencia de los parámetros sobre los 
+```{r}
+#tiff("CoeficientesRLM.tiff", units="in", width=5, height=5, res=300)
+
+df_coeficientes <- modelo$coefficients %>%
+                   enframe(name = "predictor", value = "coeficiente")
+
+df_coeficientes %>%
+  filter(predictor != "(Intercept)") %>%
+  ggplot(aes(x = predictor, y = coeficiente)) +
+  geom_col(fill="#69b3a2") +
+  labs(x ="Predictor", y="Coeficiente") +
+  theme_bw() +
+  theme(axis.text.x = element_text(size = 6), aspect.ratio = 0.5, axis.title=element_text(size=8))
+
+#dev.off()
+```
+Estudiando los coeficientes aquellas variables con significativa mayor influencia sobre el resultado farmacocinético son GFR, Gender, BMI y Q_br. La selección de parámetros se consultó con el grupo de investigación famracológica de Viena, quienes recomendaron la no elección del flujo sanguíneo en el cerebro como variable para la estratificación poblacional, al ser una medida de dificil alcance en el ámbito médico lo que dificulta la aplicación práctica de esta metodología en el ámbito clínico
+
+
+
