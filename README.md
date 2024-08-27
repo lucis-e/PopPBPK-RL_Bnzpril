@@ -19,6 +19,12 @@ cd PopPBPK-RL_Bnzpril
 >To run this project, ensure you have Python 3.12.0 and R 4.3.2 installed on your system. You can download Python from [python.org](https://www.python.org/downloads/release/python-3120/) and R from [cran.r-project.org](https://cran.r-project.org/bin/windows/base/). Additionally, we recommend installing RStudio for a more convenient development environment. You can download RStudio from 
 [rstudio.com](https://www.rstudio.com/products/rstudio/download/).
 
+Required dependencies can be installed by running:
+
+```
+pip install -r requirements.txt
+```
+
 ## How to run this project?
 
 Please follow these steps indicating the order in which each code script should be executed
