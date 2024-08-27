@@ -82,6 +82,10 @@ def GFR_group(GFR):
 train_directory = "Results/Train"
 if not os.path.exists(train_directory):
         os.makedirs(train_directory)
+        
+test_directory = "Results/Test"
+if not os.path.exists(test_directory):
+        os.makedirs(test_directory)
 # -----
 
 # CÓDIGO PRINCIPAL:

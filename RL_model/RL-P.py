@@ -14,29 +14,23 @@ from docx.shared import Pt
 
 # 0. CARGA DE LOS DATOS
 
-exp_RU='Resultados/experiencias_RU_train.csv'   # Experiencias con RU
-exp_RE='Resultados/experiencias_RE_train.csv'   # Experiencias con RE
+input_exp='Results/TrainExperiences.csv'
+input_states='Results/StateMap.txt'
 
-input2='Resultados/mapa_estados_train.txt'    # Mapa de estados
 input_data = "../Data/A2_DOK_P40GFRstratL_data_V02.xlsx"    # Todo el dataset para obtener la información antropométrica de los pacientes
 
 # Carga de las experiencias
 data = {}
 
-file = open(exp_RU, 'r')
+file = open(input_exp, 'r')
 data['RU'] = list(csv.reader(file, delimiter=',', quoting=csv.QUOTE_NONNUMERIC))  # lee las experiencias como una lista de listas
 file.close()
 data['RU'] = [list(x) for x in set(tuple(x) for x in data['RU'])]   # Lista única de experiencias porque solo necesitamos la información 
 
-file = open(exp_RE, 'r')
-data['RE'] = list(csv.reader(file, delimiter=',', quoting=csv.QUOTE_NONNUMERIC))  
-file.close()
-data['RE'] = [list(x) for x in set(tuple(x) for x in data['RE'])]   # Lista única de experiencias porque solo necesitamos la información 
-
 
 # Carga de los estados
 states = ''
-with open(input2,'r') as f:
+with open(input_states,'r') as f:
          for i in f.readlines():
             states=i #string
 states = eval(states)
@@ -131,20 +125,15 @@ def f(x):
 # Función dependiente de la distancia euclidiana: alpha = 0.8, gamma = 0.8
 #--------------------------------------------------------------------------------------------------------------------------------------------
 
-path_UF = 'Resultados/R_utilidad/'  # tabla-Q de la función de utilidad
-path_EF = 'Resultados/R_euclidiana/'    # tablas-Q para la función basada en las distancias planares
+path_qtable = 'Results/Train/'  # tabla-Q de la función de utilidad
 
-q_tables = {}   # almacena tanto la tabla de la función de utilidad (RU) como la de la función dependiente de la distancia (RE)
+q_tables = {}   
 
-for file in os.listdir(path_UF):
-    if (file.endswith('.pickle')) and (file.startswith('qtable40_0.8_0.6_')):
-        with open(path_UF+file, 'rb') as fil:
+for file in os.listdir(path_qtable):
+    if (file.endswith('.pickle')) and (file.startswith('trained_qtable')):
+        with open(path_qtable+file, 'rb') as fil:
             q_tables['RU'] = pickle.load(fil)
 
-for file in os.listdir(path_EF):
-    if (file.endswith('.pickle')) and (file.startswith('qtable40_0.8_0.8_')):
-        with open(path_EF+file, 'rb') as fil:
-            q_tables['RE'] = pickle.load(fil) #  tablas-Q con un identificador con la información de los hiperparámetros del modelo
 
 
 # CODIGO PRINCIPAL
@@ -167,14 +156,14 @@ tuple_state = (GENDER, BMI, GFR)
 
 # Se selecciona la función de la que se quieren extraer las trayectorias
 
-modelo_funcion = ['RU', 'RE']     # Para extraer la información de los dos modelos de función 
+modelo_funcion = ['RU']     # In this case we are only working with the utility function
 
 
 # MODELO DEL ENTORNO (con librería Gym)
 
 class CustomEnv(Env):   # Usammos gym para crear el entorno personalizado (el entorno lo definen las experiencias que se generan a partir de los datos obtenidos por el modelo PopPBPK)
     def __init__ (self): # Para inicializar las acciones, los estados y la longitud de los estados
-        self.action_space = Discrete(16, start = 1) #   dimensión del espacio de acciones (1-16: 2.5-40 ng)
+        self.action_space = Discrete(16) #   dimensión del espacio de acciones (1-16: 2.5-40 ng)
         self.state_space = Discrete(len(states))    #   dimensión del espacion de estados (10824)
         self.state = states[tuple_state + (0,0)] # Se incializan los estados en AUC = 0 y Cmax = 0, valores de las variables farmacocinéticas pre-tratamiento
         self.treatment_length = 7   # tratamiento para 7 días
@@ -231,7 +220,7 @@ for key in modelo_funcion:
         state = env.reset() # Inicializa el entorno y empieza en el estado inicial pre-tratamiento para el paciente seleccionado
         done = False
         score = 0  
-        print(f'Extrayendo trayectorias para el paciente: p{index + 1}   Modelo de función: {key}')
+        print(f'Extrayendo trayectorias para el paciente: p{index + 1}   Reward function: {key}')
 
         action_seq = []
         auc_seq = []
@@ -252,5 +241,4 @@ for key in modelo_funcion:
     optimal_policies[key] = df
 
 
-optimal_policies['RU'].to_excel('Resultados/Reg_dos_RUtrain.xlsx')  
-optimal_policies['RE'].to_excel('Resultados/Reg_dos_REtrain.xlsx')  
+optimal_policies['RU'].to_excel('Results/Test/RL-Learned_DosingRegimen.xlsx')  
