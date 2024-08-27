@@ -63,11 +63,11 @@ python RL-T.py
 > The Q-Learning algorithm would employ the optimal combination of hyperparameters (learning rate and discount factor) discovered by grid search. To 
 repeat model's **hyperparameter tuning** the following code should be run:
 
->```
->cd ParameterTuning
->python RL-T_tuning.py
->python RL-P_tuning.py
->```
+```
+cd ParameterTuning
+python RL-T_tuning.py
+python RL-P_tuning.py
+```
 
 :five: **Retrieve the RL-learned dosing regimens**
 
