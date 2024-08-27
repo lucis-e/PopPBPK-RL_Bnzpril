@@ -1,6 +1,8 @@
 # PopPBPK-RL_Bnzpril
 Welome to PopPBPK-RL_Bnzpril! This repository showcases the codebase for RL model-informed precision of Benazepril in renal impaired patients
 
+![Workflow of the PopPBPK-RL_Bnzpril project](images/Workflow.png)
+
 ## Versions used 
 
 - R: 4.3.2
