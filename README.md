@@ -1,6 +1,7 @@
 # PopPBPK-RL_Bnzpril
-Welome to PopPBPK-RL_Bnzpril! This repository showcases the codebase for RL model-informed precision of Benazepril in renal impaired patients
-![Workflow of the PopPBPK-RL_Bnzpril project](images/Workflow.png)
+This repository contains the codebase for a RL-based model-informed precision dosing of Benazepril in renal impaired patients. Training data is generated based on a virtual population for accounting variability of patients characteristics. On this virtual population, patient stratification and feature selection is also performed to better handle dose tailoring problems. The stratified population is used to perform PBPK modeling to obtain pharmacokinetic response for each patient to different Benazepril doses during 7 days of treatment. Then, pharmacokinetic response data is used in combination with RL for obtaining patient tailored dose regimes.
+
+<!--- ![Workflow of the PopPBPK-RL_Bnzpril project](images/Workflow.png) --->
 
 ## Versions used 
 
