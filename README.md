@@ -35,11 +35,11 @@ Please follow these steps indicating the order in which each code script should 
 
 :one:  <span style="color:blue"> **MLR analysis for feature selection** </span>
 
-Run the R Markdown notebook to perform MLR and partial correlation coefficient analysis, discovering the anthropometric parameters that are most influential in PK profile prediction.
+Run the `FeatureSelection_RLM.Rmd` R Markdown notebook to perform MLR and partial correlation coefficient analysis, discovering the anthropometric parameters that are most influential in PK profile prediction.
 
 :two: **Virtual population stratification based on the extracted features**
 
-Run the Python notebook to classify the virtual population into the defined strata based on the MLR-selected features and calculate the distribution of the PK parameters in each group.
+Run the `PopulationStratification.ipynb` Python notebook to classify the virtual population into the defined strata based on the MLR-selected features and calculate the distribution of the PK parameters in each group.
 
 
 ### 2. RL agent
