@@ -81,7 +81,7 @@ python RL-P.py
 
 ## Data
 
-The data employed in this project is available under formal request to: 
+The data employed in this project is available under formal request to luciamgil00@gmail.com
 
 
 ## Contributors 
